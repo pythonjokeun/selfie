@@ -185,7 +185,7 @@ wheels = [
 ]
 
 [[package]]
-name = "selfie"
+name = "selv"
 version = "1.0.0"
 source = { editable = "." }
 

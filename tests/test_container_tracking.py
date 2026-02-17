@@ -1,18 +1,18 @@
-"""Container-specific tests for selfie decorator."""
+"""Container-specific tests for selv decorator."""
 
-from selfie import selfie
+from selv import selv
 
 
 def test_set_initialization():
     """Test set initialization is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
 
     obj = TestClass()
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
 
     assert len(history) >= 1
     assert history[0]["from"] is None
@@ -23,7 +23,7 @@ def test_set_initialization():
 def test_set_add_tracking():
     """Test set add operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
@@ -31,7 +31,7 @@ def test_set_add_tracking():
     obj = TestClass()
     obj.items.add(4)
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert 4 in history[-1]["to"]
 
@@ -39,7 +39,7 @@ def test_set_add_tracking():
 def test_set_remove_tracking():
     """Test set remove operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
@@ -47,7 +47,7 @@ def test_set_remove_tracking():
     obj = TestClass()
     obj.items.remove(2)
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert 2 not in history[-1]["to"]
 
@@ -55,7 +55,7 @@ def test_set_remove_tracking():
 def test_set_discard_tracking():
     """Test set discard operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
@@ -63,7 +63,7 @@ def test_set_discard_tracking():
     obj = TestClass()
     obj.items.discard(3)
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert 3 not in history[-1]["to"]
 
@@ -71,7 +71,7 @@ def test_set_discard_tracking():
 def test_set_pop_tracking():
     """Test set pop operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
@@ -80,7 +80,7 @@ def test_set_pop_tracking():
     original_size = len(obj.items)
     obj.items.pop()
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert len(history[-1]["to"]) == original_size - 1
 
@@ -88,7 +88,7 @@ def test_set_pop_tracking():
 def test_set_clear_tracking():
     """Test set clear operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
@@ -96,7 +96,7 @@ def test_set_clear_tracking():
     obj = TestClass()
     obj.items.clear()
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert len(history[-1]["to"]) == 0
 
@@ -104,7 +104,7 @@ def test_set_clear_tracking():
 def test_set_update_tracking():
     """Test set update operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
@@ -112,7 +112,7 @@ def test_set_update_tracking():
     obj = TestClass()
     obj.items.update([4, 5])
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert 4 in history[-1]["to"]
     assert 5 in history[-1]["to"]
@@ -121,7 +121,7 @@ def test_set_update_tracking():
 def test_set_intersection_update_tracking():
     """Test set intersection_update operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3, 4, 5}
@@ -129,7 +129,7 @@ def test_set_intersection_update_tracking():
     obj = TestClass()
     obj.items.intersection_update({2, 3, 6})
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert 2 in history[-1]["to"]
     assert 3 in history[-1]["to"]
@@ -139,7 +139,7 @@ def test_set_intersection_update_tracking():
 def test_set_difference_update_tracking():
     """Test set difference_update operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3, 4, 5}
@@ -147,7 +147,7 @@ def test_set_difference_update_tracking():
     obj = TestClass()
     obj.items.difference_update({3, 4})
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert 3 not in history[-1]["to"]
     assert 4 not in history[-1]["to"]
@@ -156,7 +156,7 @@ def test_set_difference_update_tracking():
 def test_set_symmetric_difference_update_tracking():
     """Test set symmetric_difference_update operation is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
@@ -164,7 +164,7 @@ def test_set_symmetric_difference_update_tracking():
     obj = TestClass()
     obj.items.symmetric_difference_update({3, 4, 5})
 
-    history = obj.get_change_history("items")
+    history = obj.view_changelog("items")
     assert len(history) >= 2
     assert 3 not in history[-1]["to"]  # Removed (was in both)
     assert 4 in history[-1]["to"]  # Added (was only in other)
@@ -174,13 +174,13 @@ def test_set_symmetric_difference_update_tracking():
 def test_tuple_initialization():
     """Test tuple initialization is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.coords = (1, 2, 3)
 
     obj = TestClass()
-    history = obj.get_change_history("coords")
+    history = obj.view_changelog("coords")
 
     assert len(history) >= 1
     assert history[0]["from"] is None
@@ -191,7 +191,7 @@ def test_tuple_initialization():
 def test_tuple_reassignment_tracking():
     """Test tuple reassignment is tracked (tuples are immutable)."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.coords = (1, 2, 3)
@@ -199,7 +199,7 @@ def test_tuple_reassignment_tracking():
     obj = TestClass()
     obj.coords = (4, 5, 6)
 
-    history = obj.get_change_history("coords")
+    history = obj.view_changelog("coords")
     assert len(history) >= 2
     assert history[-1]["to"] == (4, 5, 6)
 
@@ -207,14 +207,14 @@ def test_tuple_reassignment_tracking():
 def test_empty_set_tracking():
     """Test empty set initialization and operations are tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.empty_set = set()
 
     obj = TestClass()
 
-    history = obj.get_change_history("empty_set")
+    history = obj.view_changelog("empty_set")
     assert len(history) >= 1
     assert history[0]["from"] is None
     assert history[0]["to"] == set()
@@ -223,7 +223,7 @@ def test_empty_set_tracking():
 def test_set_method_return_values():
     """Test set methods return correct values."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
@@ -244,7 +244,7 @@ def test_set_method_return_values():
 def test_set_in_dict_tracking():
     """Test set inside dict is tracked."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.data = {"tags": {"python", "decorator"}}
@@ -252,7 +252,7 @@ def test_set_in_dict_tracking():
     obj = TestClass()
     obj.data["tags"].add("observable")
 
-    history = obj.get_change_history("data")
+    history = obj.view_changelog("data")
     assert len(history) >= 2
     # When set inside dict is modified, it logs the set change
     # not the dict change (current architecture limitation)
@@ -262,14 +262,14 @@ def test_set_in_dict_tracking():
 def test_format_value_set():
     """Test _format_value method works for sets."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.items = {1, 2, 3}
 
     obj = TestClass()
 
-    history = obj.get_change_history(format="attr")
+    history = obj.view_changelog(format="attr")
     assert "items" in history
     record_str = str(history["items"][0])
     assert "{" in record_str
@@ -279,14 +279,14 @@ def test_format_value_set():
 def test_format_value_tuple():
     """Test _format_value method works for tuples."""
 
-    @selfie
+    @selv
     class TestClass:
         def __init__(self):
             self.coords = (1, 2, 3)
 
     obj = TestClass()
 
-    history = obj.get_change_history(format="attr")
+    history = obj.view_changelog(format="attr")
     assert "coords" in history
     record_str = str(history["coords"][0])
     assert "(" in record_str

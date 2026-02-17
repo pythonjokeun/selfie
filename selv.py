@@ -1,6 +1,6 @@
 """Python decorator for logging attribute changes."""
 
-__all__ = ["selfie"]
+__all__ = ["selv"]
 
 import copy
 from datetime import datetime
@@ -46,7 +46,7 @@ class ObservableDict(dict):
         super().__setitem__(key, wrapped_value)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -65,7 +65,7 @@ class ObservableDict(dict):
         super().__delitem__(key)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -92,7 +92,7 @@ class ObservableList(list):
         super().__setitem__(key, wrapped_value)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -111,7 +111,7 @@ class ObservableList(list):
         super().__delitem__(key)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -121,7 +121,7 @@ class ObservableList(list):
         super().append(wrapped_value)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -130,7 +130,7 @@ class ObservableList(list):
         result = super().pop(index)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
         return result
@@ -158,7 +158,7 @@ class ObservableSet(set):
         super().add(wrapped_element)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -177,7 +177,7 @@ class ObservableSet(set):
         super().remove(element)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -186,7 +186,7 @@ class ObservableSet(set):
         super().discard(element)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -195,7 +195,7 @@ class ObservableSet(set):
         result = super().pop()
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
         return result
@@ -205,7 +205,7 @@ class ObservableSet(set):
         super().clear()
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -215,7 +215,7 @@ class ObservableSet(set):
         super().update(*others)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -224,7 +224,7 @@ class ObservableSet(set):
         super().intersection_update(*others)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -233,7 +233,7 @@ class ObservableSet(set):
         super().difference_update(*others)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -242,7 +242,7 @@ class ObservableSet(set):
         super().symmetric_difference_update(other)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
-            self._parent._selfie_log_container_change(
+            self._parent._selv_log_container_change(
                 self._attr_name, old_container_state, new_container_state
             )
 
@@ -333,8 +333,8 @@ class _ChangeRecord:
         return "{" + ", ".join(items) + "}"
 
 
-class _SelfieDecorator:
-    """Internal class to handle selfie decorator logic."""
+class _SelvDecorator:
+    """Internal class to handle selv decorator logic."""
 
     def __init__(
         self,
@@ -365,11 +365,11 @@ class _SelfieDecorator:
         is_initial: bool = False,
     ) -> None:
         """Log attribute change."""
-        if not hasattr(self_obj, "_selfie_change_history"):
-            self_obj._selfie_change_history = {}
+        if not hasattr(self_obj, "_selv_change_history"):
+            self_obj._selv_change_history = {}
 
-        if name not in self_obj._selfie_change_history:
-            self_obj._selfie_change_history[name] = []
+        if name not in self_obj._selv_change_history:
+            self_obj._selv_change_history[name] = []
 
         old_value_copy = copy.deepcopy(old_value) if old_value is not None else None
         new_value_copy = copy.deepcopy(new_value) if new_value is not None else None
@@ -381,7 +381,7 @@ class _SelfieDecorator:
             new_value=new_value_copy,
             container_key=container_key,
         )
-        self_obj._selfie_change_history[name].append(record)
+        self_obj._selv_change_history[name].append(record)
 
         attr_str = self._get_attribute_string(name, container_key)
         log_func = self.logger if self.logger is not None else print
@@ -442,7 +442,7 @@ class _SelfieDecorator:
                     object.__setattr__(self_obj, name, value)
                 return
 
-            if name.startswith("_selfie_"):
+            if name.startswith("_selv_"):
                 if original_setattr:
                     original_setattr(self_obj, name, value)
                 else:
@@ -459,7 +459,7 @@ class _SelfieDecorator:
             else:
                 object.__setattr__(self_obj, name, wrapped_value)
 
-            if not name.startswith("_selfie_"):
+            if not name.startswith("_selv_"):
                 self.log_change(
                     self_obj,
                     cls.__name__,
@@ -471,19 +471,19 @@ class _SelfieDecorator:
 
         return new_setattr
 
-    def create_get_change_history(self) -> Callable:
-        """Create the get_change_history method for the decorated class."""
+    def create_view_changelog(self) -> Callable:
+        """Create the view_changelog method for the decorated class."""
 
-        def get_change_history(
+        def view_changelog(
             self_obj: Any,
             attribute: Optional[str] = None,
             format: Literal["flat", "attr"] = "flat",
         ) -> Union[Dict[str, List[Dict[str, Any]]], List[Dict[str, Any]]]:
-            """Get change history for attributes."""
+            """View changelog for attributes."""
             if format not in ("flat", "attr"):
                 raise ValueError(f"format must be 'flat' or 'attr', got {format!r}")
 
-            if not hasattr(self_obj, "_selfie_change_history"):
+            if not hasattr(self_obj, "_selv_change_history"):
                 return self._get_empty_history(attribute, format)
 
             if attribute is None:
@@ -491,7 +491,7 @@ class _SelfieDecorator:
             else:
                 return self._get_attribute_history(self_obj, attribute)
 
-        return get_change_history
+        return view_changelog
 
     def _get_empty_history(
         self, attribute: Optional[str], format: Literal["flat", "attr"]
@@ -513,7 +513,7 @@ class _SelfieDecorator:
     def _get_all_history_flat(self, self_obj: Any) -> List[Dict[str, Any]]:
         """Get flat format history for all attributes."""
         result = []
-        for attr_name, records in self_obj._selfie_change_history.items():
+        for attr_name, records in self_obj._selv_change_history.items():
             for record in records:
                 result.append(self._format_record(record, attr_name))
         return result
@@ -521,7 +521,7 @@ class _SelfieDecorator:
     def _get_all_history_attr(self, self_obj: Any) -> Dict[str, List[Dict[str, Any]]]:
         """Get attribute format history for all attributes."""
         result = {}
-        for attr_name, records in self_obj._selfie_change_history.items():
+        for attr_name, records in self_obj._selv_change_history.items():
             result[attr_name] = [self._format_record(record) for record in records]
         return result
 
@@ -529,7 +529,7 @@ class _SelfieDecorator:
         self, self_obj: Any, attribute: str
     ) -> List[Dict[str, Any]]:
         """Get history for a specific attribute."""
-        records = self_obj._selfie_change_history.get(attribute, [])
+        records = self_obj._selv_change_history.get(attribute, [])
         return [self._format_record(record) for record in records]
 
     def _format_record(
@@ -546,13 +546,13 @@ class _SelfieDecorator:
         return formatted
 
 
-def _selfie(
+def _selv(
     track_private: bool = True, logger: Optional[Callable[[str], None]] = None
 ) -> Any:
     """Class decorator for logging attribute changes."""
 
     def decorator(cls: Type[T]) -> Any:
-        decorator_instance = _SelfieDecorator(track_private, logger)
+        decorator_instance = _SelvDecorator(track_private, logger)
         original_setattr = getattr(cls, "__setattr__", None)
 
         # Create bound methods for the class
@@ -593,22 +593,22 @@ def _selfie(
 
         # Set methods on the class
         cls.__setattr__ = decorator_instance.create_setattr(cls, original_setattr)
-        cls.get_change_history = decorator_instance.create_get_change_history()
-        cls._selfie_wrap_container = wrap_container
-        cls._selfie_log_change = log_change
-        cls._selfie_log_container_change = log_container_change
+        cls.view_changelog = decorator_instance.create_view_changelog()
+        cls._selv_wrap_container = wrap_container
+        cls._selv_log_change = log_change
+        cls._selv_log_container_change = log_container_change
 
         return cls
 
     return decorator
 
 
-def selfie_decorator(*args: Any, **kwargs: Any) -> Any:
-    """Decorator for @selfie and @selfie(...) syntax."""
+def selv_decorator(*args: Any, **kwargs: Any) -> Any:
+    """Decorator for @selv and @selv(...) syntax."""
     if args and not kwargs and callable(args[0]):
-        return _selfie()(args[0])
+        return _selv()(args[0])
 
-    return _selfie(*args, **kwargs)
+    return _selv(*args, **kwargs)
 
 
-selfie = selfie_decorator
+selv = selv_decorator

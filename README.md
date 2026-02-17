@@ -1,32 +1,38 @@
-# Selfie
+# Selv
 
-A Python decorator for logging attribute changes in classes. Track every modification to your object's attributes with automatic logging and change history.
+A Python decorator for logging attribute changes in class. Track every modification to your object's attributes with automatic logging and changelog.
+
+## Motivation
+
+Tracking attribute changes helps me understand how a complex class behaves and speeds up debugging when issues occur. Having said this, I need a simple way to log all attribute changes without writing boilerplate code for each attribute.
 
 ## Features
 
-- **Automatic attribute change tracking**: Decorated classes automatically log all attribute changes
+- **Automatic attribute change tracking**: Decorated class automatically log all attribute changes
 - **Container support**: Tracks changes to dictionaries, lists, sets, and tuples, including nested modifications
-- **Flexible logging**: Use built-in `print` or any custom logger function
-- **Change history**: Query complete change history for any attribute
+- **Flexible logging**: Use good ol `print` statement or any custom logger function
+- **View changelog**: Query complete change history for any attribute
 
 ## Installation
 
 ```bash
-pip install selfie
+pip install selv
 ```
 
 Or using mighty `uv`:
 
 ```bash
-uv add selfie
+uv add selv
 ```
 
 ## Usage
 
-```python
-from selfie import selfie
+### Tracking changes
 
-@selfie
+```python
+from selv import selv
+
+@selv
 class Counter:
     def __init__(self):
         self.value = 0
@@ -45,25 +51,31 @@ counter.decrement()
 # Changes are automatically logged:
 # [Counter] value: 0 -> 1
 # [Counter] value: 1 -> 0
+```
 
-# Query change history
-all_changes = counter.get_change_history()
+### View changelog
+
+```python
+# View all changes
+all_changes = counter.view_changelog()
+print(all_changes)
 # [
 #   {'time': datetime, 'attr': 'value', 'from': None, 'to': 0},
 #   {'time': datetime, 'attr': 'value', 'from': 0, 'to': 1},
 #   {'time': datetime, 'attr': 'value', 'from': 1, 'to': 0}
 # ]
 
-# Get changes for specific attribute
-value_changes = counter.get_change_history("value")
+# View changes for specific attribute
+value_changes = counter.view_changelog("value")
+print(value_changes)
 # [
 #   {'time': datetime, 'from': None, 'to': 0},
 #   {'time': datetime, 'from': 0, 'to': 1},
 #   {'time': datetime, 'from': 1, 'to': 0}
 # ]
 
-# Get changes grouped by attribute
-grouped = counter.get_change_history(format="attr")
+# View changes grouped by attribute
+grouped = counter.view_changelog(format="attr")
 # {
 #   'value': [
 #     {'time': datetime, 'from': None, 'to': 0},
@@ -73,9 +85,17 @@ grouped = counter.get_change_history(format="attr")
 # }
 ```
 
-### More Examples
+### Parameters
 
-See more examples in the [`examples/`](examples/) directory.
+The `@selv` decorator has a few parameters to customize its behavior.
+
+1. **`track_private`** (`bool`, default: `True`)
+   - When `True`: Tracks all attributes including those starting with `_` (private attributes)
+   - When `False`: Only tracks public attributes (those not starting with `_`)
+
+2. **`logger`** (`Callable[[str], None]`, default: `print`)
+   - Function to use for logging change messages (e.g., `logging.info`, `logging.debug`)
+   - Can be any function that accepts a string argument
 
 ## License
 

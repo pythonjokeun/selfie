@@ -1,7 +1,7 @@
-from selfie import selfie
+from selv import selv
 
 
-@selfie
+@selv
 class DataModel:
     def __init__(self):
         self.name = "Untitled"
@@ -31,9 +31,9 @@ model.tags.remove("python")
 model.coordinates = (10, 20)
 
 print("All changes:")
-for change in model.get_change_history():
+for change in model.view_changelog():
     print(f"  {change['attr']}: {change['from']} -> {change['to']}")
 
 print("\nSettings changes only:")
-for change in model.get_change_history("settings"):
+for change in model.view_changelog("settings"):
     print(f"  {change['from']} -> {change['to']}")
