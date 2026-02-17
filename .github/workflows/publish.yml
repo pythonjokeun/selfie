@@ -1,0 +1,42 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Publish to Test PyPI?"
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.13
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish package
+        run: |
+          if [ "${{ github.event.inputs.test }}" = "true" ]; then
+            echo "Publishing to Test PyPI..."
+            uv publish --publish-url https://test.pypi.org/legacy/
+          else
+            echo "Publishing to PyPI..."
+            uv publish
+          fi
