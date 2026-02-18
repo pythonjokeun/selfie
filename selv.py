@@ -28,11 +28,11 @@ class ObservableDict(dict):
         self._attr_name = attr_name
         self._initializing = True
         super().__init__()
-        # Process initial items and wrap them
+
         if len(args) > 0:
             if len(args) > 1:
                 raise TypeError("expected at most 1 argument, got %d" % len(args))
-            # Extract first argument safely
+
             first_arg = args[0]
             for key, value in dict(first_arg).items():
                 self[key] = value
@@ -52,6 +52,7 @@ class ObservableDict(dict):
 
     def _wrap_value(self, value):
         """Wrap container values for observation."""
+        # Recursively wrap nested containers to maintain observation chain
         if isinstance(value, dict):
             return ObservableDict(value, parent=self._parent, attr_name=self._attr_name)
         elif isinstance(value, list):
@@ -78,9 +79,8 @@ class ObservableList(list):
         self._attr_name = attr_name
         self._initializing = True
         super().__init__()
-        # Process initial items and wrap them
+
         if len(args) > 0:
-            # Extract first argument safely
             first_arg = args[0]
             for value in first_arg:
                 self.append(value)
@@ -98,6 +98,7 @@ class ObservableList(list):
 
     def _wrap_value(self, value):
         """Wrap container values for observation."""
+        # Recursively wrap nested containers to maintain observation chain
         if isinstance(value, dict):
             return ObservableDict(value, parent=self._parent, attr_name=self._attr_name)
         elif isinstance(value, list):
@@ -144,9 +145,8 @@ class ObservableSet(set):
         self._attr_name = attr_name
         self._initializing = True
         super().__init__()
-        # Process initial items and wrap them
+
         if len(args) > 0:
-            # Extract first argument safely
             first_arg = args[0]
             for value in first_arg:
                 self.add(value)
@@ -164,6 +164,7 @@ class ObservableSet(set):
 
     def _wrap_value(self, value):
         """Wrap container values for observation."""
+        # Recursively wrap nested containers to maintain observation chain
         if isinstance(value, dict):
             return ObservableDict(value, parent=self._parent, attr_name=self._attr_name)
         elif isinstance(value, list):
@@ -211,7 +212,7 @@ class ObservableSet(set):
 
     def update(self, *others):
         old_container_state = self.copy() if self._parent else None
-        # Update with original values, wrapping happens in add() method
+
         super().update(*others)
         if self._parent and self._attr_name and not self._initializing:
             new_container_state = self.copy()
@@ -323,11 +324,10 @@ class _ChangeRecord:
 
     def _format_set(self, value: set) -> str:
         """Format set value."""
+        # Try to sort for consistent output, fall back to natural order if sorting fails
         try:
-            # Try to sort for consistent output
             sorted_items = sorted(value)
         except TypeError:
-            # If sorting fails (mixed types), use natural order
             sorted_items = list(value)
         items = [self._format_value(item) for item in sorted_items]
         return "{" + ", ".join(items) + "}"
@@ -341,13 +341,16 @@ class _SelvDecorator:
         track_private: bool = True,
         logger: Optional[Callable[[str], None]] = None,
         exclude: Optional[List[str]] = None,
+        actions: Optional[Dict[str, Callable[[Any], None]]] = None,
     ):
         self.track_private = track_private
         self.logger = logger
         self.exclude = exclude or []
+        self.actions = actions or {}
 
     def wrap_container(self, self_obj: Any, name: str, value: Any) -> Any:
         """Wrap dict/list/set values."""
+        # Convert regular containers to observable versions for tracking
         if isinstance(value, dict):
             return ObservableDict(value, parent=self_obj, attr_name=name)
         elif isinstance(value, list):
@@ -355,6 +358,53 @@ class _SelvDecorator:
         elif isinstance(value, set):
             return ObservableSet(value, parent=self_obj, attr_name=name)
         return value
+
+    def _safe_copy(self, value: Any) -> Any:
+        """Safely copy a value, handling observable containers specially."""
+        # Observable containers need special handling to avoid triggering notifications
+        if value is None:
+            return None
+
+        if isinstance(value, (ObservableDict, ObservableList, ObservableSet)):
+            if isinstance(value, ObservableDict):
+                return dict(value.items())
+            elif isinstance(value, ObservableList):
+                return list(value)
+            elif isinstance(value, ObservableSet):
+                return set(value)
+
+        return copy.deepcopy(value)
+
+    def _ensure_history_initialized(self, self_obj: Any, name: str) -> None:
+        """Ensure change history is initialized for the object and attribute."""
+        if not hasattr(self_obj, "_selv_change_history"):
+            self_obj._selv_change_history = {}
+
+        if name not in self_obj._selv_change_history:
+            self_obj._selv_change_history[name] = []
+
+    def _log_change_message(
+        self,
+        cls_name: str,
+        attr_str: str,
+        old_value: Any,
+        new_value: Any,
+        is_initial: bool,
+        log_func: Callable,
+        record: _ChangeRecord,
+    ) -> None:
+        """Log the actual change message."""
+        # Handle three cases: initialization, deletion, and regular update
+        if is_initial:
+            formatted_val = record._format_value(new_value)
+            log_func(f"[{cls_name}] {attr_str} = {formatted_val} (initialized)")
+        elif new_value is None:
+            formatted_old = record._format_value(old_value)
+            log_func(f"[{cls_name}] {attr_str}: {formatted_old} -> deleted")
+        else:
+            formatted_old = record._format_value(old_value)
+            formatted_new = record._format_value(new_value)
+            log_func(f"[{cls_name}] {attr_str}: {formatted_old} -> {formatted_new}")
 
     def log_change(
         self,
@@ -367,14 +417,11 @@ class _SelvDecorator:
         is_initial: bool = False,
     ) -> None:
         """Log attribute change."""
-        if not hasattr(self_obj, "_selv_change_history"):
-            self_obj._selv_change_history = {}
 
-        if name not in self_obj._selv_change_history:
-            self_obj._selv_change_history[name] = []
+        self._ensure_history_initialized(self_obj, name)
 
-        old_value_copy = copy.deepcopy(old_value) if old_value is not None else None
-        new_value_copy = copy.deepcopy(new_value) if new_value is not None else None
+        old_value_copy = self._safe_copy(old_value)
+        new_value_copy = self._safe_copy(new_value)
 
         record = _ChangeRecord(
             timestamp=datetime.now(),
@@ -388,16 +435,19 @@ class _SelvDecorator:
         attr_str = self._get_attribute_string(name, container_key)
         log_func = self.logger if self.logger is not None else print
 
-        if is_initial:
-            formatted_val = record._format_value(new_value)
-            log_func(f"[{cls_name}] {attr_str} = {formatted_val} (initialized)")
-        elif new_value is None:
-            formatted_old = record._format_value(old_value)
-            log_func(f"[{cls_name}] {attr_str}: {formatted_old} -> deleted")
-        else:
-            formatted_old = record._format_value(old_value)
-            formatted_new = record._format_value(new_value)
-            log_func(f"[{cls_name}] {attr_str}: {formatted_old} -> {formatted_new}")
+        self._log_change_message(
+            cls_name, attr_str, old_value, new_value, is_initial, log_func, record
+        )
+
+        # Call custom action if defined for this attribute
+        if name in self.actions:
+            try:
+                self.actions[name](new_value)
+            except Exception as e:
+                if self.logger is not None:
+                    self.logger(f"Error in custom action for {name}: {e}")
+
+                log_func(f"[{cls_name}] Error in action for {attr_str}: {e}")
 
     def _get_attribute_string(
         self, name: str, container_key: Optional[Union[str, int]]
@@ -419,6 +469,8 @@ class _SelvDecorator:
         new_container_state: Any,
     ) -> None:
         """Log container change."""
+        # Use deepcopy to capture container state at time of change
+        # This prevents mutations from affecting historical records
         old_copy = (
             copy.deepcopy(old_container_state)
             if old_container_state is not None
@@ -437,7 +489,7 @@ class _SelvDecorator:
         """Create the __setattr__ method for the decorated class."""
 
         def new_setattr(self_obj: Any, name: str, value: Any) -> None:
-            # Handle attributes that should not be tracked
+            # Skip tracking for private attributes or excluded names
             if self._should_skip_tracking(name):
                 self._set_attribute(self_obj, name, value, original_setattr)
                 return
@@ -445,6 +497,7 @@ class _SelvDecorator:
             has_old_value = hasattr(self_obj, name)
             old_value = getattr(self_obj, name, None) if has_old_value else None
 
+            # Wrap containers to enable nested tracking
             wrapped_value = self.wrap_container(self_obj, name, value)
 
             self._set_attribute(self_obj, name, wrapped_value, original_setattr)
@@ -462,10 +515,13 @@ class _SelvDecorator:
 
     def _should_skip_tracking(self, name: str) -> bool:
         """Check if an attribute should be skipped for tracking."""
+        # Skip private attributes unless tracking is enabled
         if name.startswith("_") and not self.track_private:
             return True
+        # Skip internal selv attributes
         if name.startswith("_selv_"):
             return True
+        # Skip explicitly excluded attributes
         if name in self.exclude:
             return True
         return False
@@ -478,6 +534,7 @@ class _SelvDecorator:
         original_setattr: Optional[Callable],
     ) -> None:
         """Set an attribute using the appropriate setattr method."""
+        # Use the class's original __setattr__ if available, otherwise use object's
         if original_setattr:
             original_setattr(self_obj, name, value)
         else:
@@ -492,6 +549,7 @@ class _SelvDecorator:
             format: Literal["flat", "attr"] = "flat",
         ) -> Union[Dict[str, List[Dict[str, Any]]], List[Dict[str, Any]]]:
             """View changelog for attributes."""
+            # Validate format parameter
             if format not in ("flat", "attr"):
                 raise ValueError(f"format must be 'flat' or 'attr', got {format!r}")
 
@@ -562,11 +620,12 @@ def _selv(
     track_private: bool = True,
     logger: Optional[Callable[[str], None]] = None,
     exclude: Optional[List[str]] = None,
+    actions: Optional[Dict[str, Callable[[Any], None]]] = None,
 ) -> Any:
     """Class decorator for logging attribute changes."""
 
     def decorator(cls: Type[T]) -> Any:
-        decorator_instance = _SelvDecorator(track_private, logger, exclude)
+        decorator_instance = _SelvDecorator(track_private, logger, exclude, actions)
         original_setattr = getattr(cls, "__setattr__", None)
 
         # Create bound methods for the class
@@ -605,7 +664,7 @@ def _selv(
                 new_container_state,
             )
 
-        # Set methods on the class
+        # Attach methods to the decorated class
         cls.__setattr__ = decorator_instance.create_setattr(cls, original_setattr)
         cls.view_changelog = decorator_instance.create_view_changelog()
         cls._selv_wrap_container = wrap_container

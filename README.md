@@ -9,10 +9,12 @@ Tracking attribute changes helps me understand how a complex class behaves and s
 ## Features
 
 - **Automatic attribute change tracking**: Decorated class automatically log all attribute changes
-- **Container support**: Tracks value modifications inside container
+- **Container support**: Tracks value modifications inside built-in containers (dict, list, set, tuple)
 - **Flexible logging**: Use good ol `print` statement or any custom logger function
 - **View changelog**: Query complete change history for any attribute
 - **Exclude specific attributes**: Optionally exclude specific attributes from tracking
+
+- **Custom actions**: Execute custom functions when specific attributes change
 
 ## Installation
 
@@ -87,6 +89,29 @@ print(grouped)
 # }
 ```
 
+### Set custom action
+
+```python
+from selv import selv
+
+
+def log_inventory_change(inventory):
+    total = sum(inventory.values())
+    print(f"Total items in inventory: {total}")
+
+@selv(actions={"inventory": log_inventory_change})
+class Store:
+    def __init__(self):
+        self.inventory = {"apples": 10, "bananas": 5}
+
+store = Store()
+store.inventory["oranges"] = 8
+# [Store] inventory = {'apples': 10, 'bananas': 5} (initialized)
+# Total items in inventory: 15
+# [Store] inventory: {'apples': 10, 'bananas': 5} -> {'apples': 10, 'bananas': 5, 'oranges': 8}
+# Total items in inventory: 23
+```
+
 ### Parameters
 
 The `@selv` decorator has a few parameters to customize its behavior.
@@ -102,6 +127,10 @@ The `@selv` decorator has a few parameters to customize its behavior.
 3. **`exclude`** (`List[str]`, default: `None`)
    - List of attribute names to exclude from tracking
    - Useful for exclude sensitive data or unimportant attributes
+
+4. **`actions`** (`Dict[str, Callable[[Any], None]]`, default: `None`)
+   - Dictionary mapping attribute names to functions that are called when the attribute changes
+   - Each function receives the new value of the attribute as its argument
 
 ## License
 
