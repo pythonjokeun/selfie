@@ -12,6 +12,7 @@ Tracking attribute changes helps me understand how a complex class behaves and s
 - **Container support**: Tracks value modifications inside container
 - **Flexible logging**: Use good ol `print` statement or any custom logger function
 - **View changelog**: Query complete change history for any attribute
+- **Exclude specific attributes**: Optionally exclude specific attributes from tracking
 
 ## Installation
 
@@ -97,6 +98,10 @@ The `@selv` decorator has a few parameters to customize its behavior.
 2. **`logger`** (`Callable[[str], None]`, default: `print`)
    - Function to use for logging change messages (e.g., `logging.info`, `logging.debug`)
    - Can be any function that accepts a string argument
+
+3. **`exclude`** (`List[str]`, default: `None`)
+   - List of attribute names to exclude from tracking
+   - Useful for exclude sensitive data or unimportant attributes
 
 ## License
 

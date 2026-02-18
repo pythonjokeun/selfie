@@ -340,9 +340,11 @@ class _SelvDecorator:
         self,
         track_private: bool = True,
         logger: Optional[Callable[[str], None]] = None,
+        exclude: Optional[List[str]] = None,
     ):
         self.track_private = track_private
         self.logger = logger
+        self.exclude = exclude or []
 
     def wrap_container(self, self_obj: Any, name: str, value: Any) -> Any:
         """Wrap dict/list/set values."""
@@ -435,18 +437,9 @@ class _SelvDecorator:
         """Create the __setattr__ method for the decorated class."""
 
         def new_setattr(self_obj: Any, name: str, value: Any) -> None:
-            if name.startswith("_") and not self.track_private:
-                if original_setattr:
-                    original_setattr(self_obj, name, value)
-                else:
-                    object.__setattr__(self_obj, name, value)
-                return
-
-            if name.startswith("_selv_"):
-                if original_setattr:
-                    original_setattr(self_obj, name, value)
-                else:
-                    object.__setattr__(self_obj, name, value)
+            # Handle attributes that should not be tracked
+            if self._should_skip_tracking(name):
+                self._set_attribute(self_obj, name, value, original_setattr)
                 return
 
             has_old_value = hasattr(self_obj, name)
@@ -454,22 +447,41 @@ class _SelvDecorator:
 
             wrapped_value = self.wrap_container(self_obj, name, value)
 
-            if original_setattr:
-                original_setattr(self_obj, name, wrapped_value)
-            else:
-                object.__setattr__(self_obj, name, wrapped_value)
+            self._set_attribute(self_obj, name, wrapped_value, original_setattr)
 
-            if not name.startswith("_selv_"):
-                self.log_change(
-                    self_obj,
-                    cls.__name__,
-                    name,
-                    old_value,
-                    wrapped_value,
-                    is_initial=not has_old_value,
-                )
+            self.log_change(
+                self_obj,
+                cls.__name__,
+                name,
+                old_value,
+                wrapped_value,
+                is_initial=not has_old_value,
+            )
 
         return new_setattr
+
+    def _should_skip_tracking(self, name: str) -> bool:
+        """Check if an attribute should be skipped for tracking."""
+        if name.startswith("_") and not self.track_private:
+            return True
+        if name.startswith("_selv_"):
+            return True
+        if name in self.exclude:
+            return True
+        return False
+
+    def _set_attribute(
+        self,
+        self_obj: Any,
+        name: str,
+        value: Any,
+        original_setattr: Optional[Callable],
+    ) -> None:
+        """Set an attribute using the appropriate setattr method."""
+        if original_setattr:
+            original_setattr(self_obj, name, value)
+        else:
+            object.__setattr__(self_obj, name, value)
 
     def create_view_changelog(self) -> Callable:
         """Create the view_changelog method for the decorated class."""
@@ -547,12 +559,14 @@ class _SelvDecorator:
 
 
 def _selv(
-    track_private: bool = True, logger: Optional[Callable[[str], None]] = None
+    track_private: bool = True,
+    logger: Optional[Callable[[str], None]] = None,
+    exclude: Optional[List[str]] = None,
 ) -> Any:
     """Class decorator for logging attribute changes."""
 
     def decorator(cls: Type[T]) -> Any:
-        decorator_instance = _SelvDecorator(track_private, logger)
+        decorator_instance = _SelvDecorator(track_private, logger, exclude)
         original_setattr = getattr(cls, "__setattr__", None)
 
         # Create bound methods for the class
